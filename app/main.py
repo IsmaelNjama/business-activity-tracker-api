@@ -2,11 +2,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api.v1.auth import auth_routes
+from app.db.session import Base
+from app.db.session import engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup:
+    Base.metadata.create_all(bind=engine)
     print("Startup...")
     yield
     # Shutdown:
