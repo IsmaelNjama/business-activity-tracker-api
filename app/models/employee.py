@@ -13,3 +13,12 @@ class Employee(Base):
     gender = Column(String, nullable=False)
     password = Column(String, nullable=False)
     role = Column(String, default="employee", nullable=False)
+
+    def __repr__(self):
+        return (
+            f"<Employee "
+            f"id={self.id} "
+            f"email={self.email!r} "
+            f"first_name={self.first_name!r}"
+            f"last_name={self.last_name!r}>"
+        )
