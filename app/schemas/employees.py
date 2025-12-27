@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 
 class EmployeeBase(BaseModel):
     """General employee attributes."""
+    user_name: str
     first_name: str
     last_name: str
     email: EmailStr
@@ -17,6 +18,8 @@ class EmployeeCreate(EmployeeBase):
 
 
 class EmployeeOut(EmployeeBase):
+    """Employee attributes for output."""
+    model_config = ConfigDict(from_attributes=True)
     id: int
     role: str
 
