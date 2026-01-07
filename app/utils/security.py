@@ -42,22 +42,3 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
-
-
-# async def get_current_employee(token: Annotated[str, Depends(oauth2_scheme)]) -> EmployeeOut:
-#     credentials_exception = HTTPException(
-#         status_code=status.HTTP_401_UNAUTHORIZED,
-#         detail="Could not validate credentials",
-#         headers={"WWW-Authenticate": "Bearer"},
-#     )
-#     try:
-#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#         user_name = payload.get("sub")
-#         if user_name is None:
-#             raise credentials_exception
-#         token_data = TokenData(sub=user_name)
-#     except InvalidTokenError:
-#         raise credentials_exception
-#     if user_name is None:
-#         raise credentials_exception
-#     return user_name
