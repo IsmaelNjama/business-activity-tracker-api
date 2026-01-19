@@ -1,4 +1,6 @@
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from datetime import datetime
+from typing import Optional
 
 
 class EmployeeBase(BaseModel):
@@ -17,11 +19,21 @@ class EmployeeCreate(EmployeeBase):
     password: str = Field(..., alias="password")
 
 
+class EmployeeUpdate(BaseModel):
+    """Employee update fields optional"""
+    model_config = ConfigDict(extra="forbid")
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = Field(None, alias="firstName")
+    last_name: Optional[str] = Field(None, alias="lastName")
+    phone_number: Optional[str] = Field(None, alias="phoneNumber")
+
+
 class EmployeeOut(EmployeeBase):
     """Employee attributes for output."""
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
     id: int
     role: str
+    created_at: datetime
 
 
 class EmployeeInDB(EmployeeBase):

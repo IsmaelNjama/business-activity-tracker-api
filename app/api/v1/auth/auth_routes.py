@@ -26,15 +26,15 @@ async def create_employee(employee_in: EmployeeCreate, db: Session = Depends(get
     if db.query(Employee).filter(Employee.email == employee_in.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Here add logic to hash the password and save the employee
+    # Hash password and create employee data
+    hashed_password = hash_password(employee_in.password)
+    employee_data = employee_in.__dict__.copy()
+    employee_data['password'] = hashed_password
 
-    employee_in.password = hash_password(employee_in.password)
-
-    new_employee = Employee(**employee_in.__dict__)
+    new_employee = Employee(**employee_data)
     db.add(new_employee)
     db.commit()
     db.refresh(new_employee)
-    print(new_employee)
     return new_employee
 
 
