@@ -1,4 +1,4 @@
-"""Employees auth API endpoints"""
+
 from fastapi import APIRouter, status, Depends, HTTPException, Form
 from app.schemas.employees import EmployeeOut, EmployeeCreate
 from app.schemas.security import LoginResponse

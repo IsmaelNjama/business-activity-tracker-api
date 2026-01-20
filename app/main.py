@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api.v1.auth import auth_routes
+from .api.v1.employees import employee_routes
 from app.db.session import Base
 from app.db.session import engine
 
@@ -19,8 +20,8 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
     app = FastAPI(
-        title="FastAPI Template",
-        description="FastAPI Template",
+        title="Business Activity Tracker API",
+        description="RESTful API for managing employee records with secure authentication and business activity tracking",
         version="0.0.1",
         lifespan=lifespan
     )
@@ -36,6 +37,7 @@ def create_app() -> FastAPI:
 
     # API routes
     app.include_router(auth_routes.router)
+    app.include_router(employee_routes.router)
 
     return app
 
@@ -45,7 +47,7 @@ app = create_app()
 
 @app.get("/")
 async def root():
-    return {"message": "Hello, World!"}
+    return {"message": "Business Tracker API!"}
 
 if __name__ == "__main__":
     import uvicorn
