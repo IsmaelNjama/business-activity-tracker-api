@@ -10,9 +10,8 @@ from app.db.session import Base
 class Activity(Base):
     __tablename__ = "activities"
 
-    # Core fields
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("employees.id"))
     # 'expense', 'sales', 'customer', 'production', 'storage'
     type: Mapped[str] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
