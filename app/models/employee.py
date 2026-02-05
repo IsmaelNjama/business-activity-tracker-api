@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import func
+import uuid
+from sqlalchemy import func, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.session import Base
 
@@ -11,7 +12,8 @@ from app.db.session import Base
 class Employee(Base):
     __tablename__ = "employees"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     username: Mapped[str] = mapped_column(unique=True, index=True)
     first_name: Mapped[str] = mapped_column()
     last_name: Mapped[str] = mapped_column()

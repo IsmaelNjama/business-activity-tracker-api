@@ -31,12 +31,12 @@ class EmployeeUpdate(BaseModel):
 class EmployeeOut(EmployeeBase):
     """Employee attributes for output."""
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
-    id: int
+    id: str
     role: str
     created_at: datetime
 
 
 class EmployeeInDB(EmployeeBase):
-    id: int
+    id: str
     role: str
     hashed_password: str

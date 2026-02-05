@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import ForeignKey, func, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.session import Base
 
@@ -10,8 +10,8 @@ from app.db.session import Base
 class Activity(Base):
     __tablename__ = "activities"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("employees.id"))
+    id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("employees.id"))
     # 'expense', 'sales', 'customer', 'production', 'storage'
     type: Mapped[str] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
@@ -49,11 +49,6 @@ class Activity(Base):
 
     # Relationship to Employee
     employee: Mapped["Employee"] = relationship(back_populates="activities")
-
-    __mapper_args__ = {
-        "polymorphic_on": "type",
-        "polymorphic_identity": "activity"
-    }
 
     def __repr__(self):
         return f"<Activity id={self.id} type={self.type!r} user_id={self.user_id}>"

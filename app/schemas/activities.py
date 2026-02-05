@@ -4,6 +4,7 @@ from datetime import datetime
 
 
 class ActivityBase(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     type: Literal["expense", "sales", "customer", "production", "storage"]
     user_id: str = Field(alias="userId")
 
@@ -60,7 +61,6 @@ ActivityCreate = Union[
 
 class ActivityOut(ActivityBase):
     model_config = ConfigDict(
-        populate_by_name=True,
         from_attributes=True,
     )
     id: str
@@ -100,7 +100,7 @@ class ActivityFilters(BaseModel):
 
 # updating activities
 class ActivityUpdate(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
     type: Optional[Literal["expense", "sales",
                            "customer", "production", "storage"]] = None
 

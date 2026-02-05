@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from fastapi import HTTPException
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from app.models.activity import Activity
@@ -27,7 +27,7 @@ class ActivityServices:
         user_id: str
     ) -> Activity:
         """Create a new activity"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Create base activity with common fields
         activity_dict = {
