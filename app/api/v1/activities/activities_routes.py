@@ -10,7 +10,7 @@ from app.schemas.activities import (
     ActivityFilters
 )
 from app.services.activity_services import ActivityServices
-from app.auth import get_current_user
+from app.utils.auth import get_current_user
 
 
 router = APIRouter(prefix="/v1/activities", tags=["activities"])
