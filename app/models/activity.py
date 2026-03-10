@@ -36,8 +36,8 @@ class Activity(Base):
     notes: Mapped[Optional[str]] = mapped_column()
 
     # Production fields
-    raw_material_weight: Mapped[Optional[float]] = mapped_column()
-    weight_unit: Mapped[Optional[str]] = mapped_column()
+    raw_material_weight: Mapped[Optional[str]] = mapped_column()
+    weight_unit: Mapped[Optional[int]] = mapped_column()
     machine_image_before: Mapped[Optional[str]] = mapped_column()
     machine_image_after: Mapped[Optional[str]] = mapped_column()
 
