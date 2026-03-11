@@ -15,7 +15,7 @@ class ActivityBase(BaseModel):
         allow_population_by_field_name=True,
     )
     type: Literal["expense", "sales", "customer", "production", "storage"]
-    user_id: str = Field(alias="userId")
+    user_id: str
 
 
 class ExpenseActivityCreate(ActivityBase):
@@ -43,9 +43,9 @@ class SalesActivityCreate(ActivityBase):
 
 class CustomerActivityCreate(ActivityBase):
     type: Literal["customer"] = "customer"
-    customer_name: str = Field(alias="customerName")
-    service_date: str = Field(alias="serviceDate")
-    service_type: str = Field(alias="serviceType")
+    customer_name: str
+    service_date: str
+    service_type: str
     notes: Optional[str] = None
 
 
@@ -104,9 +104,9 @@ class ActivityOut(ActivityBase):
         allow_population_by_field_name=True,
     )
     id: str
-    user_id: str = Field(alias="userId")
-    created_at: datetime = Field(alias="createdAt")
-    updated_at: datetime = Field(alias="updatedAt")
+    user_id: str
+    created_at: datetime
+    updated_at: datetime
 
     receipt_image: Optional[str] = None
     description: Optional[str] = None
@@ -135,11 +135,11 @@ class ActivityFilters(BaseModel):
         alias_generator=to_camel,
         allow_population_by_field_name=True,
     )
-    user_id: Optional[str] = Field(None, alias="userId")
+    user_id: Optional[str]
     type: Optional[Literal["expense", "sales",
                            "customer", "production", "storage"]] = None
-    start_date: Optional[str] = Field(None, alias="startDate")
-    end_date: Optional[str] = Field(None, alias="endDate")
+    start_date: Optional[str]
+    end_date: Optional[str]
 
 
 # updating activities
