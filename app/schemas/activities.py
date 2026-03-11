@@ -12,7 +12,7 @@ class ActivityBase(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
         alias_generator=to_camel,
-        allow_population_by_field_name=True,
+        validate_by_name=True,
     )
     type: Literal["expense", "sales", "customer", "production", "storage"]
     user_id: str
@@ -101,7 +101,7 @@ class ActivityOut(ActivityBase):
         from_attributes=True,
         populate_by_name=True,
         alias_generator=to_camel,
-        allow_population_by_field_name=True,
+        validate_by_name=True,
     )
     id: str
     user_id: str
@@ -133,7 +133,7 @@ class ActivityFilters(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
         alias_generator=to_camel,
-        allow_population_by_field_name=True,
+        validate_by_name=True,
     )
     user_id: Optional[str]
     type: Optional[Literal["expense", "sales",
@@ -146,7 +146,7 @@ class ActivityFilters(BaseModel):
 class ActivityUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True,
                               alias_generator=to_camel,
-                              allow_population_by_field_name=True)
+                              validate_by_name=True)
     type: Optional[Literal["expense", "sales",
                            "customer", "production", "storage"]] = None
 
