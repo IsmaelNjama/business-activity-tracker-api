@@ -8,3 +8,4 @@ pydantic[email]
 python-multipart
 mangum
 alembic
+psycopg2-binary
