@@ -42,6 +42,8 @@ mangum==0.21.0
     # via -r requirements.in
 markupsafe==3.0.3
     # via mako
+psycopg2-binary==2.9.11
+    # via -r requirements.in
 pwdlib[argon2]==0.3.0
     # via -r requirements.in
 pycparser==3.0
