@@ -1,15 +1,204 @@
+# AWSTemplateFormatVersion: '2010-09-09'
+# Description: 'BAT Lambda Function with API Gateway'
+
+# Parameters:
+#   FunctionName:
+#     Type: String
+#     Default: business-activity-tracker
+#   ImageUri:
+#     Type: String
+#     Description: ECR image URI for the Lambda function
+
+# Resources:
+#   LambdaExecutionRole:
+#     Type: AWS::IAM::Role
+#     Properties:
+#       RoleName: !Sub "${FunctionName}-execution-role"
+#       AssumeRolePolicyDocument:
+#         Version: '2012-10-17'
+#         Statement:
+#           - Effect: Allow
+#             Principal:
+#               Service: lambda.amazonaws.com
+#             Action: sts:AssumeRole
+#       ManagedPolicyArns:
+#         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+#   LambdaFunction:
+#     Type: AWS::Lambda::Function
+#     Properties:
+#       FunctionName: !Ref FunctionName
+#       PackageType: Image
+#       Code:
+#         ImageUri: !Ref ImageUri
+#       Role: !GetAtt LambdaExecutionRole.Arn
+#       Timeout: 30
+#       MemorySize: 512
+
+#   ApiGateway:
+#     Type: AWS::ApiGatewayV2::Api
+#     Properties:
+#       Name: !Sub "${FunctionName}-api"
+#       ProtocolType: HTTP
+#       CorsConfiguration:
+#         AllowOrigins:
+#           - "*"
+#         AllowMethods:
+#           - "*"
+#         AllowHeaders:
+#           - "*"
+
+#   LambdaIntegration:
+#     Type: AWS::ApiGatewayV2::Integration
+#     Properties:
+#       ApiId: !Ref ApiGateway
+#       IntegrationType: AWS_PROXY
+#       IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations"
+#       PayloadFormatVersion: "2.0"
+
+#   DefaultRoute:
+#     Type: AWS::ApiGatewayV2::Route
+#     Properties:
+#       ApiId: !Ref ApiGateway
+#       RouteKey: "$default"
+#       Target: !Sub "integrations/${LambdaIntegration}"
+
+#   ApiStage:
+#     Type: AWS::ApiGatewayV2::Stage
+#     Properties:
+#       ApiId: !Ref ApiGateway
+#       StageName: "$default"
+#       AutoDeploy: true
+
+#   LambdaPermission:
+#     Type: AWS::Lambda::Permission
+#     Properties:
+#       FunctionName: !Ref LambdaFunction
+#       Action: lambda:InvokeFunction
+#       Principal: apigateway.amazonaws.com
+#       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*"
+
+# Outputs:
+#   ApiUrl:
+#     Description: API Gateway URL
+#     Value: !GetAtt ApiGateway.ApiEndpoint
+  
+#   LambdaFunctionArn:
+#     Description: Lambda Function ARN
+#     Value: !GetAtt LambdaFunction.Arn
+
+
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'BAT Lambda Function with API Gateway'
+Description: 'BAT Lambda Function (FastAPI + Mangum + Docker) with API Gateway and RDS via Secrets Manager'
 
 Parameters:
   FunctionName:
     Type: String
     Default: business-activity-tracker
+
   ImageUri:
     Type: String
     Description: ECR image URI for the Lambda function
 
+  # --- NEW: DB connection info ---
+  DBHost:
+    Type: String
+    Default: db-business-tracker-instance.cefqgw0yc3c2.us-east-1.rds.amazonaws.com
+    Description: RDS PostgreSQL endpoint (publicly accessible for now)
+
+  DBName:
+    Type: String
+    Default: postgres
+    Description: Database name
+
+  SecretArn:
+    Type: String
+    Description: >
+      ARN of the Secrets Manager secret containing DB credentials.
+      Secret must have keys: "username" and "password".
+
 Resources:
+
+  # -------------------------------------------------------
+  # NEW: Security Group for Lambda
+  #
+  # Required because Lambda is now placed inside your VPC
+  # so it can reach both the RDS instance and the Secrets
+  # Manager VPC endpoint.
+  #
+  # Egress rules:
+  #   5432 → 0.0.0.0/0   RDS is publicly accessible for now.
+  #                        When moved to private, change this
+  #                        to DestinationSecurityGroupId pointing
+  #                        at your RDS security group instead.
+  #   443  → 0.0.0.0/0   HTTPS for Secrets Manager VPC endpoint.
+  # -------------------------------------------------------
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "Security group for ${FunctionName} Lambda"
+      VpcId: !ImportValue
+        'Fn::Sub': '${FunctionName}-VpcId'
+      SecurityGroupEgress:
+        - Description: PostgreSQL to public RDS
+          IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0
+        - Description: HTTPS for Secrets Manager endpoint
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${FunctionName}-lambda-sg"
+
+  # -------------------------------------------------------
+  # NEW: VPC Interface Endpoint for Secrets Manager
+  #
+  # Lets Lambda (inside VPC) reach Secrets Manager without
+  # going over the public internet.
+  #
+  # PrivateDnsEnabled: true is REQUIRED. Without it, boto3
+  # resolves the public Secrets Manager hostname and the
+  # call fails from within the VPC.
+  # -------------------------------------------------------
+  SecretsManagerVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !ImportValue
+        'Fn::Sub': '${FunctionName}-VpcId'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.secretsmanager'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !ImportValue
+          'Fn::Sub': '${FunctionName}-PrivateSubnet1Id'
+        - !ImportValue
+          'Fn::Sub': '${FunctionName}-PrivateSubnet2Id'
+      SecurityGroupIds:
+        - !Ref LambdaSecurityGroup
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource: !Ref SecretArn
+
+  # -------------------------------------------------------
+  # UPDATED: IAM Role
+  #
+  # Two additions from your original:
+  #   1. AWSLambdaVPCAccessExecutionRole — allows Lambda to
+  #      create and manage the ENIs needed to run inside a VPC.
+  #      Without this, CloudFormation will fail at deploy time.
+  #   2. SecretsManagerAccess inline policy — allows the
+  #      function to call GetSecretValue on your specific secret.
+  #      Scoped to SecretArn, not wildcard.
+  # -------------------------------------------------------
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -23,7 +212,35 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole  # NEW
+      Policies:
+        - PolicyName: SecretsManagerAccess                                        # NEW
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SecretArn
 
+  # -------------------------------------------------------
+  # UPDATED: Lambda Function
+  #
+  # Three additions from your original:
+  #
+  #   VpcConfig — places the function in your VPC so it can
+  #     reach both the Secrets Manager endpoint and RDS.
+  #     Uses the same subnets as the VPC endpoint above.
+  #
+  #   Environment.Variables — gives the app what it needs:
+  #     DB_HOST, DB_PORT, DB_NAME  → build the connection string
+  #     SECRET_ARN                 → which secret to fetch
+  #     APP_AWS_REGION             → region for boto3 client
+  #     MANGUM_LIFESPAN            → disable lifespan for Lambda
+  #
+  #   Note: AWS_REGION is a reserved Lambda variable — always
+  #   use APP_AWS_REGION (or any other custom name) instead.
+  # -------------------------------------------------------
   LambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -34,7 +251,28 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 30
       MemorySize: 512
+      VpcConfig:                                        # NEW
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !ImportValue
+            'Fn::Sub': '${FunctionName}-PrivateSubnet1Id'
+          - !ImportValue
+            'Fn::Sub': '${FunctionName}-PrivateSubnet2Id'
+      Environment:                                      # NEW
+        Variables:
+          DB_HOST: !Ref DBHost
+          DB_PORT: "5432"
+          DB_NAME: !Ref DBName
+          SECRET_ARN: !Ref SecretArn
+          APP_AWS_REGION: !Ref AWS::Region
+          MANGUM_LIFESPAN: "off"
 
+  # -------------------------------------------------------
+  # UNCHANGED: API Gateway, Integration, Route, Stage, Permission
+  # Your existing setup is correct for Mangum + FastAPI.
+  # PayloadFormatVersion 2.0 is already right.
+  # -------------------------------------------------------
   ApiGateway:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -80,9 +318,17 @@ Resources:
 
 Outputs:
   ApiUrl:
-    Description: API Gateway URL
+    Description: "FastAPI base URL — append your route paths (e.g. /docs, /health)"
     Value: !GetAtt ApiGateway.ApiEndpoint
-  
+
   LambdaFunctionArn:
     Description: Lambda Function ARN
     Value: !GetAtt LambdaFunction.Arn
+
+  LambdaExecutionRoleArn:
+    Description: IAM Role ARN
+    Value: !GetAtt LambdaExecutionRole.Arn
+
+  SecretsManagerEndpointId:
+    Description: VPC Endpoint ID for Secrets Manager
+    Value: !Ref SecretsManagerVPCEndpoint

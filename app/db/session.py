@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 import os
+from app.dependencies import get_db_credentials
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -27,7 +28,13 @@ if not DB_USER or not DB_PASSWORD:
         "DB_USER and DB_PASSWORD environment variables must be set")
 
 # PostgreSQL connection string
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+creds = get_db_credentials()
+DATABASE_URL = (
+    f"postgresql://{creds['username']}:{creds['password']}"
+    f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
+)
 
 engine = create_engine(
     DATABASE_URL,
