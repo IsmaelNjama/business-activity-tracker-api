@@ -9,4 +9,5 @@ def get_db_credentials():
     client = boto3.client(
         "secretsmanager", region_name=os.environ["APP_AWS_REGION"])
     secret = client.get_secret_value(SecretId=os.environ["SECRET_ARN"])
-    return json.loads(secret["SecretString"])  # keys: "username", "password"
+    data = json.loads(secret["SecretString"])
+    return {"username": data["DB_USER"], "password": data["DB_PASSWORD"]}
