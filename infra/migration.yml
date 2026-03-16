@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Short-lived EC2 instance to run Alembic migrations'
+
+Parameters:
+  FunctionName:
+    Type: String
+    Default: business-activity-tracker
+
+  SecretArn:
+    Type: String
+    Description: ARN of the Secrets Manager secret containing DB credentials
+
+  DBHost:
+    Type: String
+    Default: database-business-activity-instance.cefqgw0yc3c2.us-east-1.rds.amazonaws.com
+
+  DBName:
+    Type: String
+    Default: postgres
+
+  # Amazon Linux 2023 AMI (us-east-1) — update if deploying in another region
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+
+  MigrationInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore  # allows SSM Session Manager (no SSH key needed)
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref SecretArn
+
+  MigrationInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref MigrationInstanceRole
+
+  MigrationSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Migration EC2 - outbound only
+      VpcId: !ImportValue
+        'Fn::Sub': '${FunctionName}-VpcId'
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          DestinationSecurityGroupId: !ImportValue
+            'Fn::Sub': '${FunctionName}-RDSSecurityGroupId'
+          Description: PostgreSQL to RDS
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS for pip, Secrets Manager, SSM
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP for pip
+
+  RDSIngressFromMigration:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !ImportValue
+        'Fn::Sub': '${FunctionName}-RDSSecurityGroupId'
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref MigrationSecurityGroup
+      Description: Allow PostgreSQL from migration EC2
+
+  MigrationInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: !Ref AmiId
+      IamInstanceProfile: !Ref MigrationInstanceProfile
+      SubnetId: !ImportValue
+        'Fn::Sub': '${FunctionName}-PublicSubnetId'
+      SecurityGroupIds:
+        - !Ref MigrationSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${FunctionName}-migration"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          yum update -y
+          yum install -y python3 python3-pip git
+
+          # Clone your repo (replace with your actual repo URL)
+          git clone https://github.com/<your-org>/business-activity-tracker-api.git /app
+          cd /app
+
+          pip3 install -r requirements.txt
+
+          export SECRET_ARN="${SecretArn}"
+          export APP_AWS_REGION="${AWS::Region}"
+          export DB_HOST="${DBHost}"
+          export DB_NAME="${DBName}"
+
+          alembic upgrade head
+
+          echo "Migrations complete"
+
+Outputs:
+  InstanceId:
+    Description: EC2 Instance ID — terminate this after migrations complete
+    Value: !Ref MigrationInstance

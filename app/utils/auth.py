@@ -5,15 +5,13 @@ from sqlalchemy.orm import Session
 from jwt.exceptions import InvalidTokenError
 import jwt
 import os
-from dotenv import load_dotenv
 
 from app.db.session import get_db
 from app.models.employee import Employee
 from app.schemas.security import TokenData
+from app.dependencies import get_secrets
 
-load_dotenv()
-
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = get_secrets()["SECRET_KEY"]
 ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")

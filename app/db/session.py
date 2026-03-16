@@ -1,9 +1,7 @@
-from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
-import os
-from app.dependencies import get_db_credentials
+from app.dependencies import get_secrets
 
 Base = declarative_base()
 
@@ -14,10 +12,10 @@ Base = declarative_base()
 # SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-creds = get_db_credentials()
+secrets = get_secrets()
 DATABASE_URL = (
-    f"postgresql://{creds['username']}:{creds['password']}"
-    f"@{os.environ['DB_HOST']}:{os.environ.get('DB_PORT', '5432')}/{os.environ.get('DB_NAME', 'postgres')}"
+    f"postgresql://{secrets['DB_USER']}:{secrets['DB_PASSWORD']}"
+    f"@{secrets['DB_HOST']}:{secrets.get('DB_PORT', '5432')}/{secrets.get('DB_NAME', 'postgres')}"
 )
 
 engine = create_engine(
