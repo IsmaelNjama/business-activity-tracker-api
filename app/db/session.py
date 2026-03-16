@@ -1,11 +1,7 @@
-from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
-import os
-
-from dotenv import load_dotenv
-load_dotenv()
+from app.dependencies import get_secrets
 
 Base = declarative_base()
 
@@ -16,18 +12,11 @@ Base = declarative_base()
 # SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "postgres")  # Default to 'postgres' database
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-
-if not DB_USER or not DB_PASSWORD:
-    raise ValueError(
-        "DB_USER and DB_PASSWORD environment variables must be set")
-
-# PostgreSQL connection string
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+secrets = get_secrets()
+DATABASE_URL = (
+    f"postgresql://{secrets['DB_USER']}:{secrets['DB_PASSWORD']}"
+    f"@{secrets['DB_HOST']}:{secrets.get('DB_PORT', '5432')}/{secrets.get('DB_NAME', 'postgres')}"
+)
 
 engine = create_engine(
     DATABASE_URL,
