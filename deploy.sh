@@ -7,8 +7,10 @@ FUNCTION_NAME="business-activity-tracker"
 ECR_REPO_NAME="business-activity-tracker"
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 VPC_STACK_NAME="business-activity-tracker-vpc"
+RDS_STACK_NAME="business-activity-tracker-rds"
 STACK_NAME="business-activity-tracker-stack"
 SECRET_ARN="${SECRET_ARN:?SECRET_ARN environment variable is required}"
+DB_PASSWORD="${DB_PASSWORD:?DB_PASSWORD environment variable is required}"
 
 echo "Building and deploying Lambda function..."
 
@@ -46,6 +48,26 @@ fi
 echo "Waiting for VPC stack..."
 aws cloudformation wait stack-create-complete --stack-name $VPC_STACK_NAME --region $AWS_REGION 2>/dev/null || \
 aws cloudformation wait stack-update-complete --stack-name $VPC_STACK_NAME --region $AWS_REGION 2>/dev/null || true
+
+# Deploy RDS stack
+if aws cloudformation describe-stacks --stack-name $RDS_STACK_NAME --region $AWS_REGION 2>/dev/null; then
+    echo "Updating RDS stack..."
+    aws cloudformation update-stack \
+        --stack-name $RDS_STACK_NAME \
+        --template-body file://infra/rds.yml \
+        --parameters ParameterKey=DBPassword,ParameterValue=$DB_PASSWORD \
+        --region $AWS_REGION || echo "RDS stack already up to date"
+else
+    echo "Creating RDS stack..."
+    aws cloudformation create-stack \
+        --stack-name $RDS_STACK_NAME \
+        --template-body file://infra/rds.yml \
+        --parameters ParameterKey=DBPassword,ParameterValue=$DB_PASSWORD \
+        --region $AWS_REGION
+fi
+echo "Waiting for RDS stack..."
+aws cloudformation wait stack-create-complete --stack-name $RDS_STACK_NAME --region $AWS_REGION 2>/dev/null || \
+aws cloudformation wait stack-update-complete --stack-name $RDS_STACK_NAME --region $AWS_REGION 2>/dev/null || true
 
 # Deploy main stack
 if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REGION 2>/dev/null; then

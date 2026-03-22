@@ -107,8 +107,8 @@ Resources:
           yum update -y
           yum install -y python3 python3-pip git
 
-          # Clone your repo (replace with your actual repo URL)
-          git clone https://github.com/<your-org>/business-activity-tracker-api.git /app
+          
+          git clone https://github.com/IsmaelNjama/business-activity-tracker-api.git /app
           cd /app
 
           pip3 install -r requirements.txt
@@ -118,7 +118,7 @@ Resources:
           export DB_HOST="${DBHost}"
           export DB_NAME="${DBName}"
 
-          alembic upgrade head
+          alembic revision --autogenerate -m "Initial migrations"
 
           echo "Migrations complete"
 

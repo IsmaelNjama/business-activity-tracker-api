@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'BAT RDS PostgreSQL instance'
+
+Parameters:
+  FunctionName:
+    Type: String
+    Default: business-activity-tracker
+
+  DBName:
+    Type: String
+    Default: postgres
+
+  DBUsername:
+    Type: String
+    Default: admin
+    NoEcho: true
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: Master password for RDS instance
+
+Resources:
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub "${FunctionName}-db"
+      DBName: !Ref DBName
+      Engine: postgres
+      EngineVersion: "16.3"
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: "20"
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !ImportValue
+        'Fn::Sub': '${FunctionName}-DBSubnetGroupName'
+      VPCSecurityGroups:
+        - !ImportValue
+          'Fn::Sub': '${FunctionName}-RDSSecurityGroupId'
+      MultiAZ: false
+      PubliclyAccessible: false
+      StorageEncrypted: true
+      DeletionProtection: false
+    DeletionPolicy: Snapshot
+
+Outputs:
+  DBEndpoint:
+    Description: RDS instance endpoint
+    Value: !GetAtt DBInstance.Endpoint.Address
+    Export:
+      Name: !Sub "${FunctionName}-DBEndpoint"
+
+  DBPort:
+    Description: RDS instance port
+    Value: !GetAtt DBInstance.Endpoint.Port
+    Export:
+      Name: !Sub "${FunctionName}-DBPort"
