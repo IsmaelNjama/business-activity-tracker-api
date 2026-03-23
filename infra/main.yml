@@ -10,12 +10,6 @@ Parameters:
     Type: String
     Description: ECR image URI for the Lambda function
 
-  # ---DB connection info ---
-  DBHost:
-    Type: String
-    Default: database-business-activity-instance.cefqgw0yc3c2.us-east-1.rds.amazonaws.com
-    Description: RDS PostgreSQL private endpoint (within VPC)
-
   DBName:
     Type: String
     Default: postgres
@@ -120,9 +114,9 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole  # NEW
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole  
       Policies:
-        - PolicyName: SecretsManagerAccess                                        # NEW
+        - PolicyName: SecretsManagerAccess                                        
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -154,8 +148,10 @@ Resources:
             'Fn::Sub': '${FunctionName}-PrivateSubnet2Id'
       Environment:                                      
         Variables:
-          DB_HOST: !Ref DBHost
-          DB_PORT: "5432"
+          DB_HOST: !ImportValue
+            'Fn::Sub': '${FunctionName}-DBEndpoint'
+          DB_PORT: !ImportValue
+            'Fn::Sub': '${FunctionName}-DBPort'
           DB_NAME: !Ref DBName
           SECRET_ARN: !Ref SecretArn
           APP_AWS_REGION: !Ref AWS::Region
