@@ -74,7 +74,7 @@ if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REG
     echo "Updating CloudFormation stack..."
     aws cloudformation update-stack \
         --stack-name $STACK_NAME \
-        --template-body file://infra/cloudformation.yml \
+        --template-body file://infra/main.yml \
         --parameters \
             ParameterKey=ImageUri,ParameterValue=$IMAGE_URI \
             ParameterKey=SecretArn,ParameterValue=$SECRET_ARN \
@@ -84,7 +84,7 @@ else
     echo "Creating CloudFormation stack..."
     aws cloudformation create-stack \
         --stack-name $STACK_NAME \
-        --template-body file://infra/cloudformation.yml \
+        --template-body file://infra/main.yml \
         --parameters \
             ParameterKey=ImageUri,ParameterValue=$IMAGE_URI \
             ParameterKey=SecretArn,ParameterValue=$SECRET_ARN \

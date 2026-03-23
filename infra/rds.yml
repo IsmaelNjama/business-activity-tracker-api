@@ -12,7 +12,7 @@ Parameters:
 
   DBUsername:
     Type: String
-    Default: admin
+    Default: tracker
     NoEcho: true
 
   DBPassword:
@@ -41,7 +41,7 @@ Resources:
       PubliclyAccessible: false
       StorageEncrypted: true
       DeletionProtection: false
-    DeletionPolicy: Snapshot
+    # DeletionPolicy: Snapshot
 
 Outputs:
   DBEndpoint:
